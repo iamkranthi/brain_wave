@@ -47,5 +47,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+    <key>NSSpeechRecognitionUsageDescription</key>
+	<string>Speech is recognised in my application because it has a virtual assitant so listen recognised the speach</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Speech is recognised via microphone which is used as input for virtual assistant</string>
 </dict>
 </plist>

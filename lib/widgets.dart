@@ -26,7 +26,9 @@ class Brainheading extends StatelessWidget {
 
 class BrainCard extends StatelessWidget {
   final Color color;
-  const BrainCard({super.key, required this.color});
+  final String text;
+  final String heading;
+  const BrainCard({super.key, required this.color, required this.text, required this.heading});
 
   @override
   Widget build(BuildContext context) {
@@ -34,21 +36,22 @@ class BrainCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 15),
       elevation: 10,
       child: Container(
+        width: double.infinity,
+        
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(10)
-        ),
+            color: color, borderRadius: BorderRadius.circular(10)),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Brainheading(
-              brainText: 'ChatGPT',
+             Brainheading(
+              brainText: heading,
               fontWeight: FontWeight.bold,
               fontSize: 20,
             ),
             verticalSpacer(5),
-            const Brainheading(
-              brainText: 'A smarter way to organise and informed with Chat GPT',
+            Brainheading(
+              brainText: text,
               fontSize: 18,
             )
           ],
