@@ -1,9 +1,10 @@
 import 'dart:developer' as developer;
-
 import 'package:brain_wave/helpers.dart';
+import 'package:brain_wave/open_sewrvice.dart';
 import 'package:brain_wave/pallet.dart';
 import 'package:brain_wave/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
@@ -16,9 +17,9 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   final SpeechToText speechToText = SpeechToText();
-
+  final FlutterTts flutterTts = FlutterTts();
   String lastWords = '';
-
+  final OpenAIService openAIService = OpenAIService();
   String? generatedContent;
   String? generatedImageUrl;
   int start = 200;
@@ -27,6 +28,12 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     initSpeechToText();
+    initTextToSpeech();
+  }
+
+  Future<void> initTextToSpeech() async {
+    await flutterTts.setSharedInstance(true);
+    setState(() {});
   }
 
   Future<void> initSpeechToText() async {
@@ -44,18 +51,23 @@ class _HomeState extends State<Home> {
     setState(() {});
   }
 
+  Future<void> systemSpeak(String content) async {
+    await flutterTts.speak(content);
+  }
+
   void onSpeechResult(SpeechRecognitionResult result) {
     setState(() {
       lastWords = result.recognizedWords;
-      
     });
-    developer.log('Speech Recognition Result: ${result.recognizedWords}', name: 'SpeechToText');
+    developer.log('Speech Recognition Result: ${result.recognizedWords}',
+        name: 'SpeechToText');
   }
 
   @override
   void dispose() {
     super.dispose();
     speechToText.stop();
+    flutterTts.stop();
   }
 
   @override
@@ -84,44 +96,63 @@ class _HomeState extends State<Home> {
                 borderRadius: BorderRadius.circular(15),
                 border: Border.all(color: Pallete.blackColor),
               ),
-              child: const Brainheading(
-                brainText: 'Good morning, What I can do for you?',
+              child: Brainheading(
+                brainText: generatedContent == null
+                    ? 'Good morning, What I can do for you?'
+                    : generatedContent!,
                 fontColor: Pallete.mainFontColor,
-                fontSize: 20,
+                fontSize: generatedContent == null ? 20 : 18,
                 fontWeight: FontWeight.w400,
               ),
             ),
             verticalSpacer(20),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.0),
+            if (generatedImageUrl != null) Padding(
+              padding: const EdgeInsets.all(10),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.network(generatedImageUrl!))),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Brainheading(
-                  brainText: 'Here are few feartures',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
+                child: Visibility(
+                  visible: generatedContent == null && generatedImageUrl ==null,
+                  child: const Brainheading(
+                    brainText: 'Here are few feartures',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
                 ),
               ),
             ),
             verticalSpacer(10),
-            const BrainCard(
-              color: Pallete.firstSuggestionBoxColor,
-              text: 'A smarter way to organise and informed with Chat GPT',
-              heading: 'ChatGPT',
+            Visibility(
+              visible: generatedContent == null && generatedImageUrl ==null,
+              child: const BrainCard(
+                color: Pallete.firstSuggestionBoxColor,
+                text: 'A smarter way to organise and informed with Chat GPT',
+                heading: 'ChatGPT',
+              ),
             ),
             verticalSpacer(25),
-            const BrainCard(
-              color: Pallete.secondSuggestionBoxColor,
-              text:
-                  'Get inspried and stay crative with your persnoal assistant powered by DALL-E ',
-              heading: 'DALL-E',
-            ),
-            verticalSpacer(25),
-            const BrainCard(
-                color: Pallete.thirdSuggestionBoxColor,
+            Visibility(
+              visible: generatedContent == null && generatedImageUrl ==null,
+              child: const BrainCard(
+                color: Pallete.secondSuggestionBoxColor,
                 text:
-                    'Get the best-of both worlds with a voice assistant powered by DALL-E and ChatGPT',
-                heading: 'Smart Voice Assistant'),
+                    'Get inspried and stay crative with your persnoal assistant powered by DALL-E ',
+                heading: 'DALL-E',
+              ),
+            ),
+            verticalSpacer(25),
+            Visibility(
+              visible: generatedContent == null && generatedImageUrl ==null,
+              child: const BrainCard(
+                  color: Pallete.thirdSuggestionBoxColor,
+                  text:
+                      'Get the best-of both worlds with a voice assistant powered by DALL-E and ChatGPT',
+                  heading: 'Smart Voice Assistant'),
+            ),
           ],
         ),
       ),
@@ -131,9 +162,21 @@ class _HomeState extends State<Home> {
           if (await speechToText.hasPermission && speechToText.isNotListening) {
             await startListening();
           } else if (speechToText.isListening) {
+            final speech = await openAIService.isArtPromptAPI(lastWords);
+            if (speech.contains('https')) {
+              generatedImageUrl = speech;
+              generatedContent = null;
+              setState(() {});
+            } else {
+              generatedImageUrl = null;
+              generatedContent = speech;
+              setState(() {});
+              await systemSpeak(speech);
+            }
+
             await stopListening();
           } else {
-             initSpeechToText();
+            initSpeechToText();
           }
         },
         child: const Icon(Icons.mic),
